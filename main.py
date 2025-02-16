@@ -6,6 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
+from datetime import datetime, timezone
 
 Session = sessionmaker(bind=engine)
 db = Session()
@@ -43,6 +44,16 @@ class EmployeeResponse(BaseModel):
     title: str
     manager_id: Optional[int]
     subordinates: list = Field(default_factory=list)
+
+    class Config:
+        from_attributes = True
+
+# Modelo para as informações da API (ApiInfo)
+class ApiInfo(BaseModel):
+    api: str
+    version: str
+    date_created: str
+    database: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -94,3 +105,14 @@ async def update_manager(req: UpdateManagerRequest):
             status_code=500,
             content={"detail": "Update failed", "code": 500, "message": str(e)}
         )
+
+# Novo endpoint raiz para verificação de status da API
+@app.get("/", response_model=ApiInfo)
+async def root():
+    api_info = ApiInfo(
+        api="organi-flow-api",
+        version="1.0.0", 
+        date_created=datetime.now(timezone.utc).strftime("%d-%m-%Y"),
+        database="sqlite"
+    )
+    return api_info
