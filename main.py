@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
 
-# Configuração da sessão do banco de dados por request
 SessionLocal = sessionmaker(bind=engine)
 
 def get_db():
@@ -19,7 +18,7 @@ def get_db():
         db.close()
 
 @asynccontextmanager
-async def lifespan():
+async def lifespan(app: FastAPI):
     from sqlalchemy import select
 
     db = SessionLocal()
