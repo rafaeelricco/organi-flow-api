@@ -41,7 +41,7 @@ class EmployeeResponse(BaseModel):
     name: str
     title: str
     manager_id: Optional[int]
-    subordinates: list = Field(default_factory=list)
+    subordinates: list["EmployeeResponse"] = Field(default_factory=list)
 
     class Config:
         from_attributes = True
@@ -60,18 +60,16 @@ async def get_hierarchy():
     try:
         employees = db.query(Employee).filter(Employee.manager_id.is_(None)).all()
         
-        result = []
-        for emp in employees:
-            emp_dict = {
-                "id": emp.id,
-                "name": emp.name,
-                "title": emp.title,
-                "manager_id": emp.manager_id,
-                "subordinates": emp.subordinates or []  
-            }
-            result.append(emp_dict)
+        def build_hierarchy(employee):
+            return EmployeeResponse(
+                id=employee.id,
+                name=employee.name,
+                title=employee.title,
+                manager_id=employee.manager_id,
+                subordinates=[build_hierarchy(sub) for sub in employee.subordinates]
+            )
         
-        return result
+        return [build_hierarchy(emp) for emp in employees]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

@@ -12,12 +12,8 @@ class Employee(Base):
     title = Column(String(50))
     manager_id = Column(Integer, ForeignKey('employees.id'))
     
-    subordinates = relationship(
-        "Employee", 
-        backref="manager",
-        remote_side=[id],
-        lazy='joined'
-    )
+    subordinates = relationship("Employee", back_populates="manager", foreign_keys=[manager_id])
+    manager = relationship("Employee", back_populates="subordinates", remote_side=[id])
 
 engine = create_engine('sqlite:///orgchart.db', echo=False)
 Base.metadata.create_all(bind=engine)
