@@ -5,6 +5,7 @@ from database import engine, Employee
 from sqlalchemy.orm import sessionmaker
 from typing import Optional
 from contextlib import asynccontextmanager
+from fastapi.responses import JSONResponse
 
 Session = sessionmaker(bind=engine)
 db = Session()
@@ -73,14 +74,23 @@ async def update_manager(req: UpdateManagerRequest):
     try:
         emp = db.query(Employee).get(req.employee_id)
         if not emp:
-            raise HTTPException(404, "Employee not found")
-            
+            return JSONResponse(
+                status_code=404,
+                content={"detail": "Employee not found", "code": 404}
+            )
+        
         emp.manager_id = req.manager_id
         db.commit()
-        return {"status": "success"}
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "code": 200, "message": "Manager updated successfully"}
+        )
         
     except HTTPException as he:
         raise he
-    except:
+    except Exception as e:
         db.rollback()
-        raise HTTPException(500, "Update failed")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Update failed", "code": 500, "message": str(e)}
+        )
