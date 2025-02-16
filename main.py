@@ -1,31 +1,40 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from database import engine, Employee
-from sqlalchemy.orm import sessionmaker
+from database import engine, Employee, Base
+from sqlalchemy.orm import sessionmaker, Session
 from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
-from database import Base
-Session = sessionmaker(bind=engine)
-db = Session()
+
+# Configuração da sessão do banco de dados por request
+SessionLocal = sessionmaker(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    from database import Employee
+async def lifespan():
     from sqlalchemy import select
 
-    Base.metadata.drop_all(bind=engine)
-    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    try:
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
     
-    if not db.scalar(select(Employee.id)):
-        from seed_data import sample_data
-        unique_data = {item['id']: item for item in sample_data}.values()
-        db.bulk_insert_mappings(Employee, unique_data)
-        db.commit()
-    yield
-    db.close()
+        if not db.scalar(select(Employee.id)):
+            from seed_data import sample_data
+            unique_data = {item['id']: item for item in sample_data}.values()
+            db.bulk_insert_mappings(Employee, unique_data)
+            db.commit()
+        yield
+    finally:
+        db.close()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -60,7 +69,7 @@ class ApiInfo(BaseModel):
         from_attributes = True
 
 @app.get("/employees", response_model=list[EmployeeResponse])
-async def get_employees():
+async def get_employees(db: Session = Depends(get_db)):
     try:
         employees = db.query(Employee).all()
         return [EmployeeResponse.model_validate(emp) for emp in employees]
@@ -68,7 +77,7 @@ async def get_employees():
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/update-manager")
-async def update_manager(req: UpdateManagerRequest):
+async def update_manager(req: UpdateManagerRequest, db: Session = Depends(get_db)):
     try:
         emp = db.query(Employee).get(req.employee_id)
         if not emp:
@@ -77,6 +86,14 @@ async def update_manager(req: UpdateManagerRequest):
                 content={"detail": "Employee not found", "code": 404}
             )
         
+        if req.manager_id == req.employee_id:
+            raise HTTPException(400, "Employee não pode ser manager de si mesmo")
+
+        if req.manager_id is not None:
+            manager_exists = db.query(Employee.id).filter_by(id=req.manager_id).first()
+            if not manager_exists:
+                raise HTTPException(422, "Novo manager_id não existe no sistema")
+
         emp.manager_id = req.manager_id
         db.commit()
         return JSONResponse(
