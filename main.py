@@ -16,14 +16,11 @@ async def lifespan(app: FastAPI):
     from database import Employee
     from sqlalchemy import select
 
-    # Reset the database by dropping and recreating all tables
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
-    # Insert seed data
     if not db.scalar(select(Employee.id)):
         from seed_data import sample_data
-        # Remove duplicates based on id before inserting
         unique_data = {item['id']: item for item in sample_data}.values()
         db.bulk_insert_mappings(Employee, unique_data)
         db.commit()
