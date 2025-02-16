@@ -14,12 +14,15 @@ db = Session()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from database import Employee
-    from sqlalchemy import select
+    from sqlalchemy import select, delete
     
-    if not db.scalar(select(Employee.id)):
-        from seed_data import sample_data
-        db.bulk_insert_mappings(Employee, sample_data)
-        db.commit()
+    db.execute(delete(Employee))
+    db.commit()
+    
+    from seed_data import sample_data
+    db.bulk_insert_mappings(Employee, sample_data)
+    db.commit()
+    
     yield
     db.close()
 
