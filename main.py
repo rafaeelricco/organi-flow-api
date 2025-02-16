@@ -13,7 +13,6 @@ db = Session()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup code
     from database import Employee
     from sqlalchemy import select
     
@@ -22,7 +21,6 @@ async def lifespan(app: FastAPI):
         db.bulk_insert_mappings(Employee, sample_data)
         db.commit()
     yield
-    # Shutdown code (optional)
     db.close()
 
 app = FastAPI(lifespan=lifespan)
@@ -48,7 +46,6 @@ class EmployeeResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Modelo para as informações da API (ApiInfo)
 class ApiInfo(BaseModel):
     api: str
     version: str
@@ -61,10 +58,8 @@ class ApiInfo(BaseModel):
 @app.get("/employees", response_model=list[EmployeeResponse])
 async def get_hierarchy():
     try:
-        # Get all employees and let SQLAlchemy handle the relationships
         employees = db.query(Employee).filter(Employee.manager_id.is_(None)).all()
         
-        # Ensure subordinates is always a list
         result = []
         for emp in employees:
             emp_dict = {
@@ -72,7 +67,7 @@ async def get_hierarchy():
                 "name": emp.name,
                 "title": emp.title,
                 "manager_id": emp.manager_id,
-                "subordinates": emp.subordinates or []  # Garante que seja uma lista vazia se for None
+                "subordinates": emp.subordinates or []  
             }
             result.append(emp_dict)
         
@@ -106,7 +101,6 @@ async def update_manager(req: UpdateManagerRequest):
             content={"detail": "Update failed", "code": 500, "message": str(e)}
         )
 
-# Novo endpoint raiz para verificação de status da API
 @app.get("/", response_model=ApiInfo)
 async def root():
     api_info = ApiInfo(
