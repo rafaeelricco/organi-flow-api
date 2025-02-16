@@ -1,28 +1,30 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from database import engine, Employee, Base
+from database import engine, Employee
 from sqlalchemy.orm import sessionmaker
 from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
-
+from database import Base
 Session = sessionmaker(bind=engine)
 db = Session()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    from database import Employee, Base
+    from database import Employee
     from sqlalchemy import select
-    
+
+    # Reset the database by dropping and recreating all tables
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     
-    from seed_data import sample_data
-    db.bulk_insert_mappings(Employee, sample_data)
-    db.commit()
-    
+    # Insert seed data
+    if not db.scalar(select(Employee.id)):
+        from seed_data import sample_data
+        db.bulk_insert_mappings(Employee, sample_data)
+        db.commit()
     yield
     db.close()
 
