@@ -60,20 +60,10 @@ class ApiInfo(BaseModel):
         from_attributes = True
 
 @app.get("/employees", response_model=list[EmployeeResponse])
-async def get_hierarchy():
+async def get_employees():
     try:
-        employees = db.query(Employee).filter(Employee.manager_id.is_(None)).all()
-        
-        def build_hierarchy(employee):
-            return EmployeeResponse(
-                id=employee.id,
-                name=employee.name,
-                title=employee.title,
-                manager_id=employee.manager_id,
-                subordinates=[build_hierarchy(sub) for sub in employee.subordinates]
-            )
-        
-        return [build_hierarchy(emp) for emp in employees]
+        employees = db.query(Employee).all()
+        return [EmployeeResponse.model_validate(emp) for emp in employees]
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
