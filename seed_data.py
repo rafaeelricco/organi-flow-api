@@ -18,7 +18,7 @@ sample_data = [
   { "id": 11, "name": "Amanda White", "title": "Senior UX Designer", "manager_id": 6 },
   { "id": 12, "name": "Sophie Chen", "title": "Senior HR Specialist", "manager_id": 7 },
   { "id": 13, "name": "Robert Johnson", "title": "Junior UX Designer", "manager_id": 11 },
-  { "id": 14, "name": "Emily Davis", "title": "Senior Developer", "manager_id": 8 },
+  { "id": 14, "name": "Emily Davis", "title": "Senior Developer", "manager_id": 12 },
   { "id": 15, "name": "Sam Smith", "title": "Senior Developer", "manager_id": 9 },
   { "id": 16, "name": "Alex Thompson", "title": "Junior Developer", "manager_id": 14 },
   { "id": 17, "name": "Mark Wilson", "title": "HR Analyst", "manager_id": 12 },
@@ -26,4 +26,5 @@ sample_data = [
   { "id": 19, "name": "Daniel Lee", "title": "Junior Developer", "manager_id": 18 },
   { "id": 20, "name": "Isabella Martinez", "title": "Senior Developer", "manager_id": 15 },
   { "id": 21, "name": "Oliver Brown", "title": "Senior Developer", "manager_id": 13 },
+  { "id": 22, "name": "Ava Johnson", "title": "Senior Developer", "manager_id": 17 },
 ]
