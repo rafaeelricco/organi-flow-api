@@ -23,7 +23,9 @@ async def lifespan(app: FastAPI):
     # Insert seed data
     if not db.scalar(select(Employee.id)):
         from seed_data import sample_data
-        db.bulk_insert_mappings(Employee, sample_data)
+        # Remove duplicates based on id before inserting
+        unique_data = {item['id']: item for item in sample_data}.values()
+        db.bulk_insert_mappings(Employee, unique_data)
         db.commit()
     yield
     db.close()
