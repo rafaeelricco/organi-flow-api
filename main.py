@@ -78,8 +78,8 @@ class BatchUpdateRequest(BaseModel):
     employees: list[EmployeeUpdateItem]
 
 class EmployeeManagerUpdate(BaseModel):
-    employee_id: int = Field(..., alias="id")
-    new_manager_id: int = Field(..., alias="manager_id")
+    id: int = Field(..., alias="id")
+    new_manager_id: int = Field(..., alias="new_manager_id")
 
 @app.get("/", response_model=ApiInfo)
 async def root():
@@ -138,6 +138,15 @@ def find_and_remove_employee(tree: dict, target_id: int) -> Optional[dict]:
             queue.append(child)
     return None
 
+def is_descendant(parent_node: dict, target_id: int) -> bool:
+    """Verifica se o target_id existe na subárvore do parent_node"""
+    if parent_node["attributes"]["id"] == target_id:
+        return True
+    for child in parent_node["children"]:
+        if is_descendant(child, target_id):
+            return True
+    return False
+
 def add_employee_to_manager(tree: dict, manager_id: int, employee_node: dict):
     manager_node = find_employee_in_tree(tree, manager_id)
     if manager_node:
@@ -150,8 +159,26 @@ async def update_employee_manager(update_data: EmployeeManagerUpdate):
     try:
         tree = load_tree()
         
+        # Validação: Novo manager deve existir
+        new_manager_node = find_employee_in_tree(tree, update_data.new_manager_id)
+        if not new_manager_node:
+            raise HTTPException(status_code=404, detail="Novo manager não encontrado")
+        
+        # Validação: Impedir self-manager
+        if update_data.id == update_data.new_manager_id:
+            raise HTTPException(status_code=400, detail="Um funcionário não pode ser manager de si mesmo")
+        
+        # Encontrar o nó do funcionário na árvore original para validação
+        employee_node_in_tree = find_employee_in_tree(tree, update_data.id)
+        if not employee_node_in_tree:
+            raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+        
+        # Validação: Prevenir loop hierárquico
+        if is_descendant(employee_node_in_tree, update_data.new_manager_id):
+            raise HTTPException(status_code=400, detail="Criação de loop hierárquico não permitida")
+        
         # Encontra e remove o funcionário da posição atual
-        employee_node = find_and_remove_employee(tree, update_data.employee_id)
+        employee_node = find_and_remove_employee(tree, update_data.id)
         if not employee_node:
             raise HTTPException(status_code=404, detail="Funcionário não encontrado")
         
@@ -167,6 +194,8 @@ async def update_employee_manager(update_data: EmployeeManagerUpdate):
             status_code=200,
             content={"status": "success", "code": 200, "message": "Manager atualizado e estrutura modificada"}
         )
+    except HTTPException as he:
+        raise he
     except Exception as e:
         logger.error(f"Error in update_employee_manager: {e}")
         return JSONResponse(
