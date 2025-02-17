@@ -2,7 +2,7 @@
 
 RESTful API built with FastAPI that provides a robust backend system for managing organizational hierarchies. This API offers endpoints for querying, updating, and maintaining complex organizational structures while ensuring data integrity and preventing invalid hierarchical relationships.
 
-Try it out: [Live Demo](https://organi-flow-api.onrender.com)
+Try it out: <a href="https://organi-flow-api.onrender.com" target="_blank">Live Demo</a>
 
 ## Main Features
 
