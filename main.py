@@ -1,40 +1,17 @@
 import logging
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone
-import json
 from pathlib import Path
+
+from classes import TreeNode, ApiInfo, EmployeeManagerUpdate
+from functions import find_employee_in_tree, find_and_remove_employee, is_descendant, add_employee_to_manager, load_tree, save_tree
 
 logging.basicConfig(level=logging.DEBUG) 
 logger = logging.getLogger(__name__)
-
-def load_tree():
-    try:
-        tree_path = Path("tree.json")
-        if tree_path.exists():
-            tree_path.chmod(0o644)
-        with open(tree_path, "r") as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return {"name": "Root", "attributes": {}, "children": []}
-    except PermissionError as e:
-        logger.error(f"Erro de permissão ao ler tree.json: {e}")
-        raise HTTPException(status_code=500, detail="Erro de permissão ao acessar dados")
-
-def save_tree(data: dict):
-    try:
-        tree_path = Path("tree.json")
-        tree_path.parent.chmod(0o755)
-        with open(tree_path, "w") as f:
-            json.dump(data, f, indent=2)
-        tree_path.chmod(0o644)
-    except PermissionError as e:
-        logger.error(f"Erro de permissão ao salvar tree.json: {e}")
-        raise HTTPException(status_code=500, detail="Erro de permissão ao salvar dados")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -57,39 +34,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
-
-class TreeNode(BaseModel):
-    name: str
-    attributes: dict
-    children: list["TreeNode"]
-
-class ApiInfo(BaseModel):
-    api: str
-    version: str
-    date_created: str
-    database: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-class SwapPositionsRequest(BaseModel):
-    employee1_id: int
-    employee2_id: int
-    new_manager1_id: Optional[int]
-    new_manager2_id: Optional[int]
-
-class EmployeeUpdateItem(BaseModel):
-    id: int
-    name: str
-    title: str
-    manager_id: Optional[int] = None
-
-class BatchUpdateRequest(BaseModel):
-    employees: list[EmployeeUpdateItem]
-
-class EmployeeManagerUpdate(BaseModel):
-    id: int = Field(..., alias="id")
-    new_manager_id: int = Field(..., alias="new_manager_id")
 
 @app.get("/", response_model=ApiInfo)
 async def root():
@@ -123,44 +67,6 @@ async def update_tree(tree_data: TreeNode):
             status_code=500,
             content={"detail": "Falha na atualização", "code": 500, "message": str(e)}
         )
-
-def find_employee_in_tree(node: dict, target_id: int) -> Optional[dict]:
-    if node["attributes"]["id"] == target_id:
-        return node
-    for child in node["children"]:
-        result = find_employee_in_tree(child, target_id)
-        if result:
-            return result
-    return None
-
-def find_and_remove_employee(tree: dict, target_id: int) -> Optional[dict]:
-    if tree["attributes"]["id"] == target_id:
-        return None
-    
-    queue = [tree]
-    while queue:
-        current = queue.pop(0)
-        for i, child in enumerate(current["children"]):
-            if child["attributes"]["id"] == target_id:
-                removed_node = current["children"].pop(i)
-                return removed_node
-            queue.append(child)
-    return None
-
-def is_descendant(parent_node: dict, target_id: int) -> bool:
-    if parent_node["attributes"]["id"] == target_id:
-        return True
-    for child in parent_node["children"]:
-        if is_descendant(child, target_id):
-            return True
-    return False
-
-def add_employee_to_manager(tree: dict, manager_id: int, employee_node: dict):
-    manager_node = find_employee_in_tree(tree, manager_id)
-    if manager_node:
-        manager_node["children"].append(employee_node)
-    else:
-        raise ValueError("Manager não encontrado")
 
 @app.post("/update-employee-manager")
 async def update_employee_manager(update_data: EmployeeManagerUpdate):
