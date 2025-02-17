@@ -59,13 +59,13 @@ async def update_tree(tree_data: TreeNode):
         save_tree(tree_data.model_dump())
         return JSONResponse(
             status_code=200,
-            content={"status": "success", "code": 200, "message": "Árvore atualizada com sucesso"}
+            content={"status": "success", "code": 200, "message": "Tree updated successfully"}
         )
     except Exception as e:
         logger.error(f"Error in update_manager: {e}")
         return JSONResponse(
             status_code=500,
-            content={"detail": "Falha na atualização", "code": 500, "message": str(e)}
+            content={"detail": "Update failed", "code": 500, "message": str(e)}
         )
 
 @app.post("/update-employee-manager")
@@ -75,21 +75,21 @@ async def update_employee_manager(update_data: EmployeeManagerUpdate):
         
         new_manager_node = find_employee_in_tree(tree, update_data.new_manager_id)
         if not new_manager_node:
-            raise HTTPException(status_code=404, detail="Novo manager não encontrado")
+            raise HTTPException(status_code=404, detail="New manager not found")
         
         if update_data.id == update_data.new_manager_id:
-            raise HTTPException(status_code=400, detail="Um funcionário não pode ser manager de si mesmo")
+            raise HTTPException(status_code=400, detail="An employee cannot be their own manager")
         
         employee_node_in_tree = find_employee_in_tree(tree, update_data.id)
         if not employee_node_in_tree:
-            raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+            raise HTTPException(status_code=404, detail="Employee not found")
         
         if is_descendant(employee_node_in_tree, update_data.new_manager_id):
-            raise HTTPException(status_code=400, detail="Criação de loop hierárquico não permitida")
+            raise HTTPException(status_code=400, detail="Hierarchical loop creation not allowed")
         
         employee_node = find_and_remove_employee(tree, update_data.id)
         if not employee_node:
-            raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+            raise HTTPException(status_code=404, detail="Employee not found")
         
         employee_node["attributes"]["manager_id"] = update_data.new_manager_id
         
@@ -99,7 +99,7 @@ async def update_employee_manager(update_data: EmployeeManagerUpdate):
         
         return JSONResponse(
             status_code=200,
-            content={"status": "success", "code": 200, "message": "Manager atualizado e estrutura modificada"}
+            content={"status": "success", "code": 200, "message": "Manager updated and structure modified"}
         )
     except HTTPException as he:
         raise he
@@ -107,5 +107,5 @@ async def update_employee_manager(update_data: EmployeeManagerUpdate):
         logger.error(f"Error in update_employee_manager: {e}")
         return JSONResponse(
             status_code=500,
-            content={"detail": "Falha na atualização", "code": 500, "message": str(e)}
+            content={"detail": "Update failed", "code": 500, "message": str(e)}
         )

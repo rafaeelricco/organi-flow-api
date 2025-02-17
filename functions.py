@@ -42,7 +42,7 @@ def add_employee_to_manager(tree: dict, manager_id: int, employee_node: dict):
     if manager_node:
         manager_node["children"].append(employee_node)
     else:
-        raise ValueError("Manager não encontrado")
+        raise ValueError("Manager not found")
 
 def load_tree():
     try:
@@ -54,8 +54,8 @@ def load_tree():
     except FileNotFoundError:
         return {"name": "Root", "attributes": {}, "children": []}
     except PermissionError as e:
-        logger.error(f"Erro de permissão ao ler tree.json: {e}")
-        raise HTTPException(status_code=500, detail="Erro de permissão ao acessar dados")
+        logger.error(f"Permission error reading tree.json: {e}")
+        raise HTTPException(status_code=500, detail="Permission error accessing data")
 
 def save_tree(data: dict):
     try:
@@ -65,5 +65,5 @@ def save_tree(data: dict):
             json.dump(data, f, indent=2)
         tree_path.chmod(0o644)
     except PermissionError as e:
-        logger.error(f"Erro de permissão ao salvar tree.json: {e}")
-        raise HTTPException(status_code=500, detail="Erro de permissão ao salvar dados")
+        logger.error(f"Permission error saving tree.json: {e}")
+        raise HTTPException(status_code=500, detail="Permission error saving data")
