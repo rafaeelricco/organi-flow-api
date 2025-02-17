@@ -11,7 +11,6 @@ class Employee(BaseModel):
     position: Optional[int] = None
     subordinates: List['Employee'] = []
 
-# Initial data to be used when creating the file
 INITIAL_DATA = [
     {
         "id": 3,

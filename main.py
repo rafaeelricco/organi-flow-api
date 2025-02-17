@@ -77,6 +77,10 @@ class EmployeeUpdateItem(BaseModel):
 class BatchUpdateRequest(BaseModel):
     employees: list[EmployeeUpdateItem]
 
+class EmployeeManagerUpdate(BaseModel):
+    employee_id: int = Field(..., alias="id")
+    new_manager_id: int = Field(..., alias="manager_id")
+
 @app.get("/", response_model=ApiInfo)
 async def root():
     api_info = ApiInfo(
@@ -105,6 +109,66 @@ async def update_tree(tree_data: TreeNode):
         )
     except Exception as e:
         logger.error(f"Error in update_manager: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": "Falha na atualização", "code": 500, "message": str(e)}
+        )
+
+def find_employee_in_tree(node: dict, target_id: int) -> Optional[dict]:
+    if node["attributes"]["id"] == target_id:
+        return node
+    for child in node["children"]:
+        result = find_employee_in_tree(child, target_id)
+        if result:
+            return result
+    return None
+
+def find_and_remove_employee(tree: dict, target_id: int) -> Optional[dict]:
+    if tree["attributes"]["id"] == target_id:
+        return None  # Não podemos remover a raiz
+    
+    queue = [tree]
+    while queue:
+        current = queue.pop(0)
+        for i, child in enumerate(current["children"]):
+            if child["attributes"]["id"] == target_id:
+                # Remove o nó da lista de filhos atual
+                removed_node = current["children"].pop(i)
+                return removed_node
+            queue.append(child)
+    return None
+
+def add_employee_to_manager(tree: dict, manager_id: int, employee_node: dict):
+    manager_node = find_employee_in_tree(tree, manager_id)
+    if manager_node:
+        manager_node["children"].append(employee_node)
+    else:
+        raise ValueError("Manager não encontrado")
+
+@app.post("/update-employee-manager")
+async def update_employee_manager(update_data: EmployeeManagerUpdate):
+    try:
+        tree = load_tree()
+        
+        # Encontra e remove o funcionário da posição atual
+        employee_node = find_and_remove_employee(tree, update_data.employee_id)
+        if not employee_node:
+            raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+        
+        # Atualiza o manager_id no nó do funcionário
+        employee_node["attributes"]["manager_id"] = update_data.new_manager_id
+        
+        # Adiciona o funcionário ao novo manager
+        add_employee_to_manager(tree, update_data.new_manager_id, employee_node)
+        
+        save_tree(tree)
+        
+        return JSONResponse(
+            status_code=200,
+            content={"status": "success", "code": 200, "message": "Manager atualizado e estrutura modificada"}
+        )
+    except Exception as e:
+        logger.error(f"Error in update_employee_manager: {e}")
         return JSONResponse(
             status_code=500,
             content={"detail": "Falha na atualização", "code": 500, "message": str(e)}
