@@ -7,10 +7,10 @@
   },
   "children": [
     {
-      "name": "David Wilson",
+      "name": "Sarah Johnson",
       "attributes": {
-        "id": 3,
-        "title": "Product Director",
+        "id": 2,
+        "title": "CTO",
         "manager_id": 1
       },
       "children": [
@@ -19,7 +19,7 @@
           "attributes": {
             "id": 6,
             "title": "Product Manager",
-            "manager_id": 3
+            "manager_id": 2
           },
           "children": [
             {
@@ -46,10 +46,10 @@
       ]
     },
     {
-      "name": "Sarah Johnson",
+      "name": "David Wilson",
       "attributes": {
-        "id": 2,
-        "title": "CTO",
+        "id": 3,
+        "title": "Product Director",
         "manager_id": 1
       },
       "children": [
@@ -58,7 +58,7 @@
           "attributes": {
             "id": 5,
             "title": "Engineering Manager",
-            "manager_id": 2
+            "manager_id": 3
           },
           "children": [
             {

@@ -96,9 +96,13 @@ def add_employee_to_manager(tree: dict, manager_id: int, employee_node: dict):
     """
     manager_node = find_employee_in_tree(tree, manager_id)
     if manager_node:
+        if manager_node["attributes"]["id"] == employee_node["attributes"]["id"]:
+            raise ValueError("Employee cannot be their own manager")
+        if is_descendant(employee_node, manager_id):
+            raise ValueError("Circular hierarchy detected")
         manager_node["children"].append(employee_node)
     else:
-        raise ValueError("Manager not found")
+        raise ValueError(f"Manager with ID {manager_id} not found")
 
 def load_tree():
     """

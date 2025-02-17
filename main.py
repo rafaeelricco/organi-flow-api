@@ -137,46 +137,49 @@ async def update_tree(tree_data: TreeNode):
         logger.error(f"Error in update_manager: {e}")
         return JSONResponse(
             status_code=500,
-            content={"detail": "Update failed", "code": 500, "message": str(e)}
+            content={
+                "detail": "Database update failed",
+                "code": 500,
+                "message": str(e)
+            }
         )
 
 @app.post("/update-employee-manager")
 async def update_employee_manager(update_data: EmployeeManagerUpdate):
     """
-    Versão que atualiza apenas os manager_ids sem remover os nós
+    Updates employee-manager relationships while maintaining tree integrity
+    
+    Args:
+        update_data (EmployeeManagerUpdate): Contains employee IDs for the relationship update
+        
+    Returns:
+        JSONResponse: Success/failure status with appropriate message
     """
     try:
         tree = load_tree()
         
-        # Encontrar os funcionários sem remover
         employee_a = find_employee_in_tree(tree, update_data.employee_id)
         employee_b = find_employee_in_tree(tree, update_data.target_id)
         
         if not employee_a or not employee_b:
-            raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+            raise HTTPException(status_code=404, detail="Employee not found")
             
-        # Manter cópia dos managers originais
         original_manager_a = employee_a["attributes"]["manager_id"]
         original_manager_b = employee_b["attributes"]["manager_id"]
         
-        # Verificar hierarquia circular
         if is_descendant(employee_a, employee_b["attributes"]["id"]) or is_descendant(employee_b, employee_a["attributes"]["id"]):
-            raise HTTPException(status_code=400, detail="Relação hierárquica inválida")
+            raise HTTPException(status_code=400, detail="Invalid hierarchical relationship")
         
-        # Atualizar manager_ids diretamente
         employee_a["attributes"]["manager_id"] = original_manager_b
         employee_b["attributes"]["manager_id"] = original_manager_a
         
-        # Encontrar e atualizar os nós pais
         manager_a_node = find_employee_in_tree(tree, original_manager_a)
         manager_b_node = find_employee_in_tree(tree, original_manager_b)
         
         if manager_a_node and manager_b_node:
-            # Remover das listas de filhos originais
             manager_a_node["children"] = [c for c in manager_a_node["children"] if c["attributes"]["id"] != employee_a["attributes"]["id"]]
             manager_b_node["children"] = [c for c in manager_b_node["children"] if c["attributes"]["id"] != employee_b["attributes"]["id"]]
             
-            # Adicionar aos novos managers
             manager_b_node["children"].append(employee_a)
             manager_a_node["children"].append(employee_b)
         
@@ -184,14 +187,19 @@ async def update_employee_manager(update_data: EmployeeManagerUpdate):
         
         return JSONResponse(
             status_code=200,
-            content={"status": "success", "code": 200, "message": "Relação atualizada com sucesso"}
+            content={"status": "success", "code": 200, "message": "Relationship updated successfully"}
         )
         
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Erro grave: {str(e)}", exc_info=True)
+        logger.error(f"Critical error: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content={"status": "error", "code": 500, "message": "Falha crítica na operação"}
+            content={
+                "detail": "Database update failed",
+                "code": 500,
+                "message": str(e),
+                "specific_error": "VALIDATION_ERROR" if isinstance(e, ValueError) else "SERVER_ERROR"
+            }
         )
