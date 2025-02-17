@@ -1,0 +1,107 @@
+{
+  "name": "John Smith",
+  "attributes": {
+    "id": 1,
+    "title": "CEO",
+    "manager_id": 0
+  },
+  "children": [
+    {
+      "name": "Sarah Johnson",
+      "attributes": {
+        "id": 2,
+        "title": "CTO",
+        "manager_id": 1
+      },
+      "children": [
+        {
+          "name": "Michael Chen",
+          "attributes": {
+            "id": 5,
+            "title": "Engineering Manager",
+            "manager_id": 2
+          },
+          "children": [
+            {
+              "name": "James Taylor",
+              "attributes": {
+                "id": 8,
+                "title": "Frontend Lead",
+                "manager_id": 5
+              },
+              "children": [
+                {
+                  "name": "Emily Davis",
+                  "attributes": {
+                    "id": 15,
+                    "title": "Senior Developer",
+                    "manager_id": 8
+                  },
+                  "children": []
+                }
+              ]
+            },
+            {
+              "name": "Maria Garcia",
+              "attributes": {
+                "id": 9,
+                "title": "Backend Lead",
+                "manager_id": 5
+              },
+              "children": [
+                {
+                  "name": "Thomas Wright",
+                  "attributes": {
+                    "id": 10,
+                    "title": "UX Designer",
+                    "manager_id": 9
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "David Wilson",
+      "attributes": {
+        "id": 3,
+        "title": "Product Director",
+        "manager_id": 1
+      },
+      "children": [
+        {
+          "name": "Peter Anderson",
+          "attributes": {
+            "id": 6,
+            "title": "Product Manager",
+            "manager_id": 3
+          },
+          "children": [
+            {
+              "name": "Amanda White",
+              "attributes": {
+                "id": 11,
+                "title": "Senior UX Designer",
+                "manager_id": 6
+              },
+              "children": [
+                {
+                  "name": "Robert Johnson",
+                  "attributes": {
+                    "id": 14,
+                    "title": "Junior UX Designer",
+                    "manager_id": 11
+                  },
+                  "children": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
