@@ -1,6 +1,8 @@
 <img src="https://res.cloudinary.com/dnqiosdb6/image/upload/v1739812292/organi-flow-api-cover_sqymud.png" alt="cover">
 
-Simple system for managing organizational hierarchy.
+RESTful API built with FastAPI that provides a robust backend system for managing organizational hierarchies. This API offers endpoints for querying, updating, and maintaining complex organizational structures while ensuring data integrity and preventing invalid hierarchical relationships.
+
+Try it out: [Live Demo](https://organi-flow-api.onrender.com)
 
 ## Main Features
 
