@@ -11,6 +11,7 @@ class Employee(Base):
     name = Column(String(50))
     title = Column(String(50))
     manager_id = Column(Integer, ForeignKey('employees.id'))
+    position = Column(Integer)
     
     subordinates = relationship("Employee", back_populates="manager", foreign_keys=[manager_id])
     manager = relationship("Employee", back_populates="subordinates", remote_side=[id])
