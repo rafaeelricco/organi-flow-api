@@ -112,38 +112,7 @@ async def get_employees():
     except Exception as e:
         logger.error(f"Error in get_employees: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/update-manager")
-async def update_tree(tree_data: TreeNode):
-    """
-    Updates the entire organizational tree structure.
     
-    Args:
-        tree_data (TreeNode): The complete new tree structure to save
-        
-    Returns:
-        JSONResponse: Success or failure message with appropriate status code
-        
-    Note:
-        This endpoint replaces the entire existing tree with the new structure
-    """
-    try:
-        save_tree(tree_data.model_dump())
-        return JSONResponse(
-            status_code=200,
-            content={"status": "success", "code": 200, "message": "Tree updated successfully"}
-        )
-    except Exception as e:
-        logger.error(f"Error in update_manager: {e}")
-        return JSONResponse(
-            status_code=500,
-            content={
-                "detail": "Database update failed",
-                "code": 500,
-                "message": str(e)
-            }
-        )
-
 @app.post("/update-employee-manager")
 async def update_employee_manager(update_data: EmployeeManagerUpdate):
     """
