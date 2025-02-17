@@ -31,5 +31,5 @@ class BatchUpdateRequest(BaseModel):
     employees: list[EmployeeUpdateItem]
 
 class EmployeeManagerUpdate(BaseModel):
-    id: int = Field(..., alias="id")
-    new_manager_id: int = Field(..., alias="new_manager_id")
+    employee_id: int 
+    target_id: int   

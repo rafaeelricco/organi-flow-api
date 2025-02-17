@@ -26,7 +26,7 @@ such as self-management or circular reporting relationships.
 
 import logging
 
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from fastapi.responses import JSONResponse
@@ -34,7 +34,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from classes import TreeNode, ApiInfo, EmployeeManagerUpdate
-from functions import find_employee_in_tree, find_and_remove_employee, is_descendant, add_employee_to_manager, load_tree, save_tree
+from functions import find_employee_in_tree, is_descendant, load_tree, save_tree
 
 logging.basicConfig(level=logging.DEBUG) 
 logger = logging.getLogger(__name__)
@@ -143,63 +143,55 @@ async def update_tree(tree_data: TreeNode):
 @app.post("/update-employee-manager")
 async def update_employee_manager(update_data: EmployeeManagerUpdate):
     """
-    Updates an employee's manager while maintaining organizational hierarchy integrity.
-    
-    Args:
-        update_data (EmployeeManagerUpdate): Contains employee ID and new manager ID
-        
-    Returns:
-        JSONResponse: Success or failure message with appropriate status code
-        
-    Raises:
-        HTTPException: 
-            - 404: If employee or manager not found
-            - 400: If attempting self-management or creating hierarchical loop
-            - 500: For general processing errors
-            
-    Note:
-        This function performs several validations:
-        1. Verifies both employee and new manager exist
-        2. Prevents self-management
-        3. Prevents circular reporting relationships
-        4. Maintains tree structure integrity
+    Versão que atualiza apenas os manager_ids sem remover os nós
     """
     try:
         tree = load_tree()
         
-        new_manager_node = find_employee_in_tree(tree, update_data.new_manager_id)
-        if not new_manager_node:
-            raise HTTPException(status_code=404, detail="New manager not found")
+        # Encontrar os funcionários sem remover
+        employee_a = find_employee_in_tree(tree, update_data.employee_id)
+        employee_b = find_employee_in_tree(tree, update_data.target_id)
         
-        if update_data.id == update_data.new_manager_id:
-            raise HTTPException(status_code=400, detail="An employee cannot be their own manager")
+        if not employee_a or not employee_b:
+            raise HTTPException(status_code=404, detail="Funcionário não encontrado")
+            
+        # Manter cópia dos managers originais
+        original_manager_a = employee_a["attributes"]["manager_id"]
+        original_manager_b = employee_b["attributes"]["manager_id"]
         
-        employee_node_in_tree = find_employee_in_tree(tree, update_data.id)
-        if not employee_node_in_tree:
-            raise HTTPException(status_code=404, detail="Employee not found")
+        # Verificar hierarquia circular
+        if is_descendant(employee_a, employee_b["attributes"]["id"]) or is_descendant(employee_b, employee_a["attributes"]["id"]):
+            raise HTTPException(status_code=400, detail="Relação hierárquica inválida")
         
-        if is_descendant(employee_node_in_tree, update_data.new_manager_id):
-            raise HTTPException(status_code=400, detail="Hierarchical loop creation not allowed")
+        # Atualizar manager_ids diretamente
+        employee_a["attributes"]["manager_id"] = original_manager_b
+        employee_b["attributes"]["manager_id"] = original_manager_a
         
-        employee_node = find_and_remove_employee(tree, update_data.id)
-        if not employee_node:
-            raise HTTPException(status_code=404, detail="Employee not found")
+        # Encontrar e atualizar os nós pais
+        manager_a_node = find_employee_in_tree(tree, original_manager_a)
+        manager_b_node = find_employee_in_tree(tree, original_manager_b)
         
-        employee_node["attributes"]["manager_id"] = update_data.new_manager_id
-        
-        add_employee_to_manager(tree, update_data.new_manager_id, employee_node)
+        if manager_a_node and manager_b_node:
+            # Remover das listas de filhos originais
+            manager_a_node["children"] = [c for c in manager_a_node["children"] if c["attributes"]["id"] != employee_a["attributes"]["id"]]
+            manager_b_node["children"] = [c for c in manager_b_node["children"] if c["attributes"]["id"] != employee_b["attributes"]["id"]]
+            
+            # Adicionar aos novos managers
+            manager_b_node["children"].append(employee_a)
+            manager_a_node["children"].append(employee_b)
         
         save_tree(tree)
         
         return JSONResponse(
             status_code=200,
-            content={"status": "success", "code": 200, "message": "Manager updated and structure modified"}
+            content={"status": "success", "code": 200, "message": "Relação atualizada com sucesso"}
         )
+        
     except HTTPException as he:
         raise he
     except Exception as e:
-        logger.error(f"Error in update_employee_manager: {e}")
+        logger.error(f"Erro grave: {str(e)}", exc_info=True)
         return JSONResponse(
             status_code=500,
-            content={"detail": "Update failed", "code": 500, "message": str(e)}
+            content={"status": "error", "code": 500, "message": "Falha crítica na operação"}
         )
