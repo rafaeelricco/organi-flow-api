@@ -1,3 +1,29 @@
+"""
+            _                      
+   _____   (_)  _____  _____  ____ 
+  / ___/  / /  / ___/ / ___/ / __ \
+ / /     / /  / /__  / /__  / /_/ /
+/_/     /_/   \___/  \___/  \____/ 
+                                   
+© r1cco.com
+
+FastAPI Application Module
+
+This module implements a REST API for managing organizational hierarchies. It provides
+endpoints for viewing and modifying employee-manager relationships while maintaining
+the integrity of the organizational structure.
+
+Key Features:
+1. Tree-based organization structure management
+2. Employee-manager relationship updates
+3. Hierarchical loop prevention
+4. Data persistence using JSON storage
+5. CORS support for cross-origin requests
+
+The API ensures data consistency and prevents invalid organizational structures
+such as self-management or circular reporting relationships.
+"""
+
 import logging
 
 from fastapi import FastAPI, HTTPException, Depends
@@ -15,6 +41,21 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Lifecycle manager for the FastAPI application.
+    
+    Initializes the application by creating a default organizational structure
+    if no existing tree.json file is found.
+    
+    Args:
+        app (FastAPI): The FastAPI application instance
+        
+    Yields:
+        None
+        
+    Note:
+        Creates a default CEO node if no existing structure is found
+    """
     try:
         if not Path("tree.json").exists():
             save_tree({
@@ -37,6 +78,16 @@ app.add_middleware(
 
 @app.get("/", response_model=ApiInfo)
 async def root():
+    """
+    Provides basic API information and health check endpoint.
+    
+    Returns:
+        ApiInfo: Object containing API metadata including:
+            - api name
+            - version
+            - creation date
+            - database type
+    """
     api_info = ApiInfo(
         api="organi-flow-api",
         version="1.0.0", 
@@ -47,6 +98,15 @@ async def root():
 
 @app.get("/employees", response_model=TreeNode)
 async def get_employees():
+    """
+    Retrieves the complete organizational structure.
+    
+    Returns:
+        TreeNode: The complete organizational tree structure
+        
+    Raises:
+        HTTPException: 500 status code if there's an error loading the tree
+    """
     try:
         return load_tree()
     except Exception as e:
@@ -55,6 +115,18 @@ async def get_employees():
 
 @app.post("/update-manager")
 async def update_tree(tree_data: TreeNode):
+    """
+    Updates the entire organizational tree structure.
+    
+    Args:
+        tree_data (TreeNode): The complete new tree structure to save
+        
+    Returns:
+        JSONResponse: Success or failure message with appropriate status code
+        
+    Note:
+        This endpoint replaces the entire existing tree with the new structure
+    """
     try:
         save_tree(tree_data.model_dump())
         return JSONResponse(
@@ -70,6 +142,28 @@ async def update_tree(tree_data: TreeNode):
 
 @app.post("/update-employee-manager")
 async def update_employee_manager(update_data: EmployeeManagerUpdate):
+    """
+    Updates an employee's manager while maintaining organizational hierarchy integrity.
+    
+    Args:
+        update_data (EmployeeManagerUpdate): Contains employee ID and new manager ID
+        
+    Returns:
+        JSONResponse: Success or failure message with appropriate status code
+        
+    Raises:
+        HTTPException: 
+            - 404: If employee or manager not found
+            - 400: If attempting self-management or creating hierarchical loop
+            - 500: For general processing errors
+            
+    Note:
+        This function performs several validations:
+        1. Verifies both employee and new manager exist
+        2. Prevents self-management
+        3. Prevents circular reporting relationships
+        4. Maintains tree structure integrity
+    """
     try:
         tree = load_tree()
         
