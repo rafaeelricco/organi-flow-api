@@ -15,14 +15,29 @@ logger = logging.getLogger(__name__)
 # Funções para carregar/salvar tree.json
 def load_tree():
     try:
-        with open(Path("tree.json"), "r") as f:
+        tree_path = Path("tree.json")
+        # Garante que o arquivo existe e tem permissões corretas
+        if tree_path.exists():
+            tree_path.chmod(0o644)  # Define permissões de leitura/escrita para o usuário
+        with open(tree_path, "r") as f:
             return json.load(f)
     except FileNotFoundError:
         return {"name": "Root", "attributes": {}, "children": []}
+    except PermissionError as e:
+        logger.error(f"Erro de permissão ao ler tree.json: {e}")
+        raise HTTPException(status_code=500, detail="Erro de permissão ao acessar dados")
 
 def save_tree(data: dict):
-    with open(Path("tree.json"), "w") as f:
-        json.dump(data, f, indent=2)
+    try:
+        tree_path = Path("tree.json")
+        # Garante que o diretório tem permissões corretas
+        tree_path.parent.chmod(0o755)  # Permissões do diretório
+        with open(tree_path, "w") as f:
+            json.dump(data, f, indent=2)
+        tree_path.chmod(0o644)  # Define permissões após salvar
+    except PermissionError as e:
+        logger.error(f"Erro de permissão ao salvar tree.json: {e}")
+        raise HTTPException(status_code=500, detail="Erro de permissão ao salvar dados")
 
 # Atualiza o lifespan para usar tree.json
 @asynccontextmanager
