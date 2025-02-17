@@ -92,7 +92,7 @@ async def root():
         api="organi-flow-api",
         version="1.0.0", 
         date_created=datetime.now(timezone.utc).strftime("%d-%m-%Y"),
-        database="sqlite"
+        database="json"
     )
     return api_info
 
