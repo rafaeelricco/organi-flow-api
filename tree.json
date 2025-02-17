@@ -42,19 +42,19 @@
               ]
             },
             {
-              "name": "Maria Garcia",
+              "name": "Amanda White",
               "attributes": {
-                "id": 9,
-                "title": "Backend Lead",
+                "id": 11,
+                "title": "Senior UX Designer",
                 "manager_id": 5
               },
               "children": [
                 {
-                  "name": "Thomas Wright",
+                  "name": "Robert Johnson",
                   "attributes": {
-                    "id": 10,
-                    "title": "UX Designer",
-                    "manager_id": 9
+                    "id": 14,
+                    "title": "Junior UX Designer",
+                    "manager_id": 11
                   },
                   "children": []
                 }
@@ -81,19 +81,19 @@
           },
           "children": [
             {
-              "name": "Amanda White",
+              "name": "Maria Garcia",
               "attributes": {
-                "id": 11,
-                "title": "Senior UX Designer",
+                "id": 9,
+                "title": "Backend Lead",
                 "manager_id": 6
               },
               "children": [
                 {
-                  "name": "Robert Johnson",
+                  "name": "Thomas Wright",
                   "attributes": {
-                    "id": 14,
-                    "title": "Junior UX Designer",
-                    "manager_id": 11
+                    "id": 10,
+                    "title": "UX Designer",
+                    "manager_id": 9
                   },
                   "children": []
                 }

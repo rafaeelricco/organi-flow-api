@@ -12,13 +12,11 @@ from pathlib import Path
 logging.basicConfig(level=logging.DEBUG) 
 logger = logging.getLogger(__name__)
 
-# Funções para carregar/salvar tree.json
 def load_tree():
     try:
         tree_path = Path("tree.json")
-        # Garante que o arquivo existe e tem permissões corretas
         if tree_path.exists():
-            tree_path.chmod(0o644)  # Define permissões de leitura/escrita para o usuário
+            tree_path.chmod(0o644)
         with open(tree_path, "r") as f:
             return json.load(f)
     except FileNotFoundError:
@@ -30,16 +28,14 @@ def load_tree():
 def save_tree(data: dict):
     try:
         tree_path = Path("tree.json")
-        # Garante que o diretório tem permissões corretas
-        tree_path.parent.chmod(0o755)  # Permissões do diretório
+        tree_path.parent.chmod(0o755)
         with open(tree_path, "w") as f:
             json.dump(data, f, indent=2)
-        tree_path.chmod(0o644)  # Define permissões após salvar
+        tree_path.chmod(0o644)
     except PermissionError as e:
         logger.error(f"Erro de permissão ao salvar tree.json: {e}")
         raise HTTPException(status_code=500, detail="Erro de permissão ao salvar dados")
 
-# Atualiza o lifespan para usar tree.json
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
@@ -53,7 +49,6 @@ async def lifespan(app: FastAPI):
     finally:
         pass
 
-# Cria a aplicação após definir o lifespan
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
@@ -140,21 +135,19 @@ def find_employee_in_tree(node: dict, target_id: int) -> Optional[dict]:
 
 def find_and_remove_employee(tree: dict, target_id: int) -> Optional[dict]:
     if tree["attributes"]["id"] == target_id:
-        return None  # Não podemos remover a raiz
+        return None
     
     queue = [tree]
     while queue:
         current = queue.pop(0)
         for i, child in enumerate(current["children"]):
             if child["attributes"]["id"] == target_id:
-                # Remove o nó da lista de filhos atual
                 removed_node = current["children"].pop(i)
                 return removed_node
             queue.append(child)
     return None
 
 def is_descendant(parent_node: dict, target_id: int) -> bool:
-    """Verifica se o target_id existe na subárvore do parent_node"""
     if parent_node["attributes"]["id"] == target_id:
         return True
     for child in parent_node["children"]:
@@ -174,33 +167,26 @@ async def update_employee_manager(update_data: EmployeeManagerUpdate):
     try:
         tree = load_tree()
         
-        # Validação: Novo manager deve existir
         new_manager_node = find_employee_in_tree(tree, update_data.new_manager_id)
         if not new_manager_node:
             raise HTTPException(status_code=404, detail="Novo manager não encontrado")
         
-        # Validação: Impedir self-manager
         if update_data.id == update_data.new_manager_id:
             raise HTTPException(status_code=400, detail="Um funcionário não pode ser manager de si mesmo")
         
-        # Encontrar o nó do funcionário na árvore original para validação
         employee_node_in_tree = find_employee_in_tree(tree, update_data.id)
         if not employee_node_in_tree:
             raise HTTPException(status_code=404, detail="Funcionário não encontrado")
         
-        # Validação: Prevenir loop hierárquico
         if is_descendant(employee_node_in_tree, update_data.new_manager_id):
             raise HTTPException(status_code=400, detail="Criação de loop hierárquico não permitida")
         
-        # Encontra e remove o funcionário da posição atual
         employee_node = find_and_remove_employee(tree, update_data.id)
         if not employee_node:
             raise HTTPException(status_code=404, detail="Funcionário não encontrado")
         
-        # Atualiza o manager_id no nó do funcionário
         employee_node["attributes"]["manager_id"] = update_data.new_manager_id
         
-        # Adiciona o funcionário ao novo manager
         add_employee_to_manager(tree, update_data.new_manager_id, employee_node)
         
         save_tree(tree)
